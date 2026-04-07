@@ -15,7 +15,6 @@ struct ClaudeMenuApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var popover: NSPopover!
-    var timer: Timer?
     let viewModel = RateLimitsViewModel()
 
     private var statuslineBinaryPath: String {
@@ -52,8 +51,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         viewModel.load()
         updateIcon()
-        timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
-            self?.viewModel.load()
+        viewModel.onUpdate = { [weak self] in
             self?.updateIcon()
         }
     }
@@ -148,10 +146,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let wdMarker = expectedUsage(resetsAt: viewModel.sevenDayReset, windowSeconds: sevenDaySeconds)
         let fhLevel = UsageLevel.classify(usage: fh, resetsAt: viewModel.fiveHourReset, windowSeconds: fiveHourSeconds)
         let wdLevel = UsageLevel.classify(usage: wd, resetsAt: viewModel.sevenDayReset, windowSeconds: sevenDaySeconds)
+        let isDark = button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         button.image = drawProgressBars(
             fiveHour: fh, sevenDay: wd,
             fhMarker: fhMarker, wdMarker: wdMarker,
-            fhLevel: fhLevel, wdLevel: wdLevel
+            fhLevel: fhLevel, wdLevel: wdLevel,
+            isDarkMenuBar: isDark
         )
         button.title = ""
     }
@@ -164,7 +164,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func drawProgressBars(fiveHour: Double, sevenDay: Double, fhMarker: Double, wdMarker: Double, fhLevel: UsageLevel, wdLevel: UsageLevel) -> NSImage {
+    func drawProgressBars(fiveHour: Double, sevenDay: Double, fhMarker: Double, wdMarker: Double, fhLevel: UsageLevel, wdLevel: UsageLevel, isDarkMenuBar: Bool) -> NSImage {
         let barWidth: CGFloat = 30
         let height: CGFloat = 18
         let barHeight: CGFloat = 5
@@ -174,9 +174,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let textGap: CGFloat = 3
 
         let font = NSFont.monospacedDigitSystemFont(ofSize: 8.5, weight: .medium)
+        let menuBarTextColor = isDarkMenuBar ? NSColor.white : NSColor.black
         let textAttrs: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor.labelColor.withAlphaComponent(0.85)
+            .foregroundColor: menuBarTextColor.withAlphaComponent(0.85)
         ]
 
         let topText = NSAttributedString(string: String(format: "%.0f%%", fiveHour), attributes: textAttrs)
@@ -187,10 +188,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let image = NSImage(size: NSSize(width: totalWidth, height: height), flipped: false) { rect in
             let totalHeight = barHeight * 2 + barGap
             let yOffset = (height - totalHeight) / 2
-            let borderColor = NSColor.labelColor.withAlphaComponent(0.45)
+            let borderColor = menuBarTextColor.withAlphaComponent(0.45)
             let trackColor = NSColor.gray.withAlphaComponent(0.15)
 
-            let markerColor = NSColor.labelColor.withAlphaComponent(0.35)
+            let markerColor = menuBarTextColor.withAlphaComponent(0.35)
 
             // Helper to draw one bar with marker
             func drawBar(y: CGFloat, usage: Double, marker: Double, level: UsageLevel, label: NSAttributedString) {

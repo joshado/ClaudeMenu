@@ -17,6 +17,37 @@ struct StatusLineInput: Codable {
     let rate_limits: RateLimits?
 }
 
+// Throttle state: tracks when we last wrote the cache file and sent a notification
+let stateFilePath = "/tmp/claude-rate-limits.state"
+let fileWriteInterval: TimeInterval = 15
+let notifyInterval: TimeInterval = 1
+
+struct ThrottleState {
+    var lastFileWrite: TimeInterval = 0
+    var lastNotify: TimeInterval = 0
+}
+
+func loadThrottleState() -> ThrottleState {
+    guard let data = try? Data(contentsOf: URL(fileURLWithPath: stateFilePath)),
+          let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Double] else {
+        return ThrottleState()
+    }
+    return ThrottleState(
+        lastFileWrite: dict["lastFileWrite"] ?? 0,
+        lastNotify: dict["lastNotify"] ?? 0
+    )
+}
+
+func saveThrottleState(_ state: ThrottleState) {
+    let dict: [String: Double] = [
+        "lastFileWrite": state.lastFileWrite,
+        "lastNotify": state.lastNotify
+    ]
+    if let data = try? JSONSerialization.data(withJSONObject: dict) {
+        try? data.write(to: URL(fileURLWithPath: stateFilePath))
+    }
+}
+
 if let parsed = try? JSONDecoder().decode(StatusLineInput.self, from: inputData),
    let limits = parsed.rate_limits {
     let output: [String: Any] = [
@@ -30,10 +61,31 @@ if let parsed = try? JSONDecoder().decode(StatusLineInput.self, from: inputData)
         ],
         "updated_at": Int(Date().timeIntervalSince1970)
     ]
-    if let jsonData = try? JSONSerialization.data(withJSONObject: output, options: [.prettyPrinted, .sortedKeys]),
-       let jsonString = String(data: jsonData, encoding: .utf8) {
-        try? jsonString.write(toFile: "/tmp/claude-rate-limits.json", atomically: true, encoding: .utf8)
+
+    let now = Date().timeIntervalSince1970
+    var state = loadThrottleState()
+
+    // Write cache file at most every 15 seconds
+    if now - state.lastFileWrite >= fileWriteInterval {
+        if let jsonData = try? JSONSerialization.data(withJSONObject: output, options: [.prettyPrinted, .sortedKeys]),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            try? jsonString.write(toFile: "/tmp/claude-rate-limits.json", atomically: true, encoding: .utf8)
+        }
+        state.lastFileWrite = now
     }
+
+    // Send IPC notification at most every 1 second
+    if now - state.lastNotify >= notifyInterval {
+        DistributedNotificationCenter.default().postNotificationName(
+            Notification.Name("org.haggett.claudemenu.rateLimitsUpdated"),
+            object: nil,
+            userInfo: output as [AnyHashable: Any],
+            deliverImmediately: true
+        )
+        state.lastNotify = now
+    }
+
+    saveThrottleState(state)
 }
 
 // Check for --wrap argument to chain another statusline command

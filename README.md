@@ -42,14 +42,22 @@ cp ../Info.plist ../ClaudeMenu.app/Contents/
 
 1. The app registers a `statusLine` command in `~/.claude/settings.json` pointing to the bundled `claude-statusline` binary
 2. Claude Code pipes JSON (including `rate_limits`) to this binary after each assistant message
-3. The binary writes parsed data to `/tmp/claude-rate-limits.json`
-4. The menu bar app polls this file every 10 seconds and redraws the icon
+3. The binary writes parsed data to `/tmp/claude-rate-limits.json` (throttled to every 15s) and sends a `DistributedNotification` to the menu bar app (throttled to every 1s)
+4. On launch the menu bar app loads the cached file, then receives live updates via IPC — no polling
 
 ## Requirements
 
 - macOS 13 (Ventura) or later
 - Claude Code with statusline support (v2.1.80+)
 - A Claude Pro or Max subscription (rate limit data is only available for subscribers)
+
+## Changelog
+
+### Unreleased
+
+- **IPC-based updates** — replaced 10-second timer polling with `DistributedNotification` IPC; the statusline binary now pushes updates directly to the menu bar app
+- **Throttled writes** — cache file writes throttled to every 15s, IPC notifications to every 1s
+- **Menu bar appearance fix** — text and borders now adapt to dark/light menu bar backgrounds
 
 ## License
 
