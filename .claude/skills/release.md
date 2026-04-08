@@ -15,13 +15,14 @@ Build, bundle, and publish a new release of ClaudeMenu to GitHub.
 
 2. **Build the project** in release mode:
    ```bash
-   cd ClaudeMenu && swift build -c release
+   cd ClaudeMenu && swift build -c release --arch arm64 --arch x86_64
    ```
 
 3. **Copy binaries** into the app bundle:
    ```bash
-   cp ClaudeMenu/.build/release/ClaudeMenu ClaudeMenu.app/Contents/MacOS/ClaudeMenu
-   cp ClaudeMenu/.build/release/claude-statusline ClaudeMenu.app/Contents/MacOS/claude-statusline
+   cp ClaudeMenu/.build/apple/Products/Release/ClaudeMenu ClaudeMenu.app/Contents/MacOS/ClaudeMenu
+   cp ClaudeMenu/.build/apple/Products/Release/claude-statusline ClaudeMenu.app/Contents/MacOS/claude-statusline
+   cp ClaudeMenu/.build/apple/Products/Release/claude-statusline ClaudeMenu.app/Contents/Resources/claude-statusline
    ```
 
 4. **Update `ClaudeMenu.app/Contents/Info.plist`** — set both `CFBundleVersion` and `CFBundleShortVersionString` to the new version.
