@@ -53,11 +53,15 @@ cp ../Info.plist ../ClaudeMenu.app/Contents/
 
 ## Changelog
 
-### Unreleased
+### v1.1.0
 
 - **IPC-based updates** — replaced 10-second timer polling with `DistributedNotification` IPC; the statusline binary now pushes updates directly to the menu bar app
 - **Throttled writes** — cache file writes throttled to every 15s, IPC notifications to every 1s
 - **Menu bar appearance fix** — text and borders now adapt to dark/light menu bar backgrounds
+
+### v1.0.0
+
+- Initial release
 
 ## License
 
