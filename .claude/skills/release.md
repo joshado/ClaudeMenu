@@ -27,19 +27,25 @@ Build, bundle, and publish a new release of ClaudeMenu to GitHub.
 
 4. **Update `ClaudeMenu.app/Contents/Info.plist`** — set both `CFBundleVersion` and `CFBundleShortVersionString` to the new version.
 
-5. **Update `README.md`** — rename the "Unreleased" section in the Changelog to the new version number (e.g. `### v1.2.0`). If there is no "Unreleased" section, add a new version section above the previous version with a summary of changes from `git log` since the last tag.
+5. **Codesign the app bundle**:
+   ```bash
+   codesign --force --sign "Apple Development: Thomas Haggett (54WJHYC472)" --deep ClaudeMenu.app
+   ```
+   Verify with `codesign --verify --deep --strict ClaudeMenu.app`.
 
-6. **Commit** the README and Info.plist changes with message: `Release v{version}`
+6. **Update `README.md`** — rename the "Unreleased" section in the Changelog to the new version number (e.g. `### v1.2.0`). If there is no "Unreleased" section, add a new version section above the previous version with a summary of changes from `git log` since the last tag.
 
-7. **Push** to origin/main.
+7. **Commit** the README and Info.plist changes with message: `Release v{version}`
 
-8. **Create the zip**:
+8. **Push** to origin/main.
+
+9. **Create the zip**:
    ```bash
    zip -r ClaudeMenu-v{version}.zip ClaudeMenu.app/
    ```
 
-9. **Create the GitHub release** using `gh release create v{version}` with the zip as an asset. Generate release notes from the changelog section for this version.
+10. **Create the GitHub release** using `gh release create v{version}` with the zip as an asset. Generate release notes from the changelog section for this version.
 
-10. **Clean up** — remove the local zip file.
+11. **Clean up** — remove the local zip file.
 
-11. Report the release URL to the user.
+12. Report the release URL to the user.
